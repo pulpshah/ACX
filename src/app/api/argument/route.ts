@@ -6,6 +6,30 @@ const client = new Groq({
   apiKey: process.env.GROQ_API_KEY,
 });
 
+// Define a type for the argument structure
+interface Argument {
+  Argument_Text?: string;
+  Premises?: string[];
+  Premises_Reasoning?: string[];
+  Conclusion?: string;
+  Conclusion_Reasoning?: string[];
+  Argument_Form?: string;
+  Argument_Form_Reasoning?: string[];
+  Completeness?: string;
+  Completeness_Reasoning?: string[];
+  Strategy?: string;
+  Strategy_Reasoning?: string[];
+  Knowledge_Field?: string[];
+  Knowledge_Field_Reasoning?: string[];
+  Knowledge_Set?: string[];
+  Knowledge_Set_Reasoning?: string[];
+  Knowledge_Type?: string[];
+  Knowledge_Type_Reasoning?: string[];
+  Interdisciplinary_Scope?: string[];
+  Interdisciplinary_Scope_Reasoning?: string[];
+  Argument_Reasoning?: string;
+}
+
 // Function to validate JSON
 function validateJson(response: string) {
   try {
@@ -18,11 +42,11 @@ function validateJson(response: string) {
 }
 
 // Function to format argument output
-function formatArgOutput(rawData: any) {
+function formatArgOutput(rawData: { Arguments: Argument[] }) {
   try {
     const args = rawData.Arguments || [];
 
-    const formattedArguments = args.map((arg: any) => ({
+    const formattedArguments = args.map((arg: Argument) => ({
       Argument_Text: arg.Argument_Text || "None",
       Premises: arg.Premises || ["None"],
       Premises_Reasoning: arg.Premises_Reasoning || ["None"],
@@ -56,12 +80,9 @@ function formatArgOutput(rawData: any) {
 
 async function getArguments(
   comment: string,
-  explCount: number = 1,
   sentenceType: string = "declarative",
   sentenceStructure: string = "simple"
 ) {
-  explCount = Math.min(explCount, 3);
-
   try {
     const completion = await client.chat.completions.create({
       model: "llama-3.3-70b-versatile",
@@ -207,7 +228,7 @@ export async function POST(req: Request) {
     }
 
     return NextResponse.json({ result: JSON.stringify(result, null, 2) });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

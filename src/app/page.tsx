@@ -151,9 +151,11 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gray-900 text-white">
       <header className="flex justify-between items-center p-6 border-b border-gray-800">
-        <h1 className="text-2xl font-bold font-[family-name:var(--font-geist-sans)]">
-          ACX
-        </h1>
+        <div className="flex items-center gap-4">
+          <h1 className="text-2xl font-bold font-[family-name:var(--font-geist-sans)]">
+            ACX
+          </h1>
+        </div>
         <button className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 transition-colors">
           Sign In
         </button>
@@ -259,7 +261,7 @@ export default function Home() {
               </div>
             ) : (
               <p className="text-gray-400">
-                Results will appear here after analysis
+                Results will appear here after analysis.
               </p>
             )}
           </div>
@@ -390,7 +392,7 @@ const ClaimDisplay = ({ result }: { result: ClaimResult }) => {
                               {ref.url}
                             </a>
                             <p className="text-sm mt-1 text-gray-300">
-                              "{ref.keyQuote}"
+                              &quot;{ref.keyQuote}&quot;
                             </p>
                           </div>
                         ))}

@@ -17,8 +17,48 @@ function validateJson(response: string) {
   }
 }
 
+// Define a type for the ethos structure
+interface Ethos {
+  Trust?: {
+    Score?: number;
+    Honesty?: number;
+    Dishonesty?: number;
+    Reasoning?: string;
+  };
+  Influence?: {
+    Score?: number;
+    Authority?: number;
+    Acquiescence?: number;
+    Reasoning?: string;
+  };
+  Capability?: {
+    Score?: number;
+    Power?: number;
+    Weakness?: number;
+    Reasoning?: string;
+  };
+  Reliability?: {
+    Score?: number;
+    Expertise?: number;
+    Inexperience?: number;
+    Reasoning?: string;
+  };
+  Assurance?: {
+    Score?: number;
+    Credibility?: number;
+    Fraudulence?: number;
+    Reasoning?: string;
+  };
+  Acceptance?: {
+    Score?: number;
+    Legitimacy?: number;
+    Illegitimacy?: number;
+    Reasoning?: string;
+  };
+}
+
 // Function to format ethos output
-function formatEthosOutput(rawData: any) {
+function formatEthosOutput(rawData: Ethos) {
   try {
     return {
       Ethos: [
@@ -73,12 +113,12 @@ function formatEthosOutput(rawData: any) {
 }
 
 async function getEthos(
-  comment: string,
-  explCount: number = 1,
-  sentenceType: string = "declarative",
-  sentenceStructure: string = "simple"
+  comment: string
+  // explCount: number = 1, // Removed unused variable
+  // sentenceType: string = "declarative", // Removed unused variable
+  // sentenceStructure: string = "simple" // Removed unused variable
 ) {
-  explCount = Math.min(explCount, 3);
+  // explCount = Math.min(explCount, 3); // Removed unused variable
 
   try {
     const completion = await client.chat.completions.create({
@@ -169,7 +209,7 @@ export async function POST(req: Request) {
     }
 
     return NextResponse.json({ result: JSON.stringify(result, null, 2) });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

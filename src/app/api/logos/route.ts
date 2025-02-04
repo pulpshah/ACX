@@ -17,8 +17,48 @@ function validateJson(response: string) {
   }
 }
 
+// Define a type for the logos structure
+interface Logos {
+  Premises?: {
+    Score?: number;
+    "Premise Strength"?: number;
+    "Premise Weakness"?: number;
+    Reasoning?: string;
+  };
+  Conclusions?: {
+    Score?: number;
+    "Conclusion Strength"?: number;
+    "Conclusion Weakness"?: number;
+    Reasoning?: string;
+  };
+  Fallacies?: {
+    Score?: number;
+    "Minor Fallacy Points"?: number;
+    "Major Fallacy Points"?: number;
+    Reasoning?: string;
+  };
+  Validity?: {
+    Score?: number;
+    "Validity Strength"?: number;
+    "Validity Weakness"?: number;
+    Reasoning?: string;
+  };
+  Biases?: {
+    Score?: number;
+    "Minor Bias Points"?: number;
+    "Major Bias Points"?: number;
+    Reasoning?: string;
+  };
+  Soundness?: {
+    Score?: number;
+    "Soundness Strength"?: number;
+    "Soundness Weakness"?: number;
+    Reasoning?: string;
+  };
+}
+
 // Function to format logos output
-function formatLogosOutput(rawData: any) {
+function formatLogosOutput(rawData: Logos) {
   try {
     return {
       Logos: [
@@ -77,12 +117,12 @@ function formatLogosOutput(rawData: any) {
 }
 
 async function getLogos(
-  comment: string,
-  explCount: number = 1,
-  sentenceType: string = "declarative",
-  sentenceStructure: string = "simple"
+  comment: string
+  // explCount: number = 1, // Removed unused variable
+  // sentenceType: string = "declarative", // Removed unused variable
+  // sentenceStructure: string = "simple" // Removed unused variable
 ) {
-  explCount = Math.min(explCount, 3);
+  // explCount = Math.min(explCount, 3); // Removed unused variable
 
   try {
     const completion = await client.chat.completions.create({
@@ -173,7 +213,7 @@ export async function POST(req: Request) {
     }
 
     return NextResponse.json({ result: JSON.stringify(result, null, 2) });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

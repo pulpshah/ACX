@@ -17,22 +17,45 @@ function validateJson(response: string) {
   }
 }
 
+// Define a type for the claim structure
+interface Claim {
+  Claim_Text?: string;
+  Knowledge_Field?: string;
+  Knowledge_Field_Reasoning?: string;
+  Knowledge_Set?: string;
+  Knowledge_Set_Reasoning?: string;
+  Claim_Type?: string;
+  Claim_Type_Reasoning?: string;
+  Claim_Form?: string;
+  Claim_Form_Reasoning?: string;
+  Knowledge_Type?: string;
+  Knowledge_Type_Reasoning?: string;
+  Interdisciplinary_Scope?: string;
+  Interdisciplinary_Scope_Reasoning?: string;
+  Claim_Reasoning?: string;
+}
+
 // Function to format claim output
-function formatClaimOutput(rawData: any) {
+function formatClaimOutput(rawData: { Claims: Claim[] }) {
   try {
     const claims = rawData.Claims?.Claims || ["None"];
     const knowledgeFields = rawData.Claims?.Knowledge_Field || ["None"];
-    const knowledgeFieldReasonings = rawData.Claims?.Knowledge_Field_Reasoning || ["None"];
+    const knowledgeFieldReasonings = rawData.Claims
+      ?.Knowledge_Field_Reasoning || ["None"];
     const knowledgeSets = rawData.Claims?.Knowledge_Set || ["None"];
-    const knowledgeSetReasonings = rawData.Claims?.Knowledge_Set_Reasoning || ["None"];
+    const knowledgeSetReasonings = rawData.Claims?.Knowledge_Set_Reasoning || [
+      "None",
+    ];
     const types = rawData.Claims?.Claim_Type || ["None"];
     const typeReasonings = rawData.Claims?.Claim_Type_Reasoning || ["None"];
     const forms = rawData.Claims?.Claim_Form || ["None"];
     const formReasonings = rawData.Claims?.Claim_Form_Reasoning || ["None"];
     const knowledgeTypes = rawData.Claims?.Knowledge_Type || ["None"];
-    const knowledgeTypeReasonings = rawData.Claims?.Knowledge_Type_Reasoning || ["None"];
+    const knowledgeTypeReasonings = rawData.Claims
+      ?.Knowledge_Type_Reasoning || ["None"];
     const scopes = rawData.Claims?.Interdisciplinary_Scope || ["None"];
-    const scopeReasonings = rawData.Claims?.Interdisciplinary_Scope_Reasoning || ["None"];
+    const scopeReasonings = rawData.Claims
+      ?.Interdisciplinary_Scope_Reasoning || ["None"];
     const reasonings = rawData.Claims?.Claim_Reasoning || ["None"];
 
     const formattedClaims = claims.map((claim: string, index: number) => ({
@@ -61,12 +84,12 @@ function formatClaimOutput(rawData: any) {
 }
 
 async function getClaims(
-  comment: string,
-  explCount: number = 1,
-  sentenceType: string = "declarative",
-  sentenceStructure: string = "simple"
+  comment: string
+  // explCount: number = 1, // Removed unused variable
+  // sentenceType: string = "declarative", // Removed unused variable
+  // sentenceStructure: string = "simple" // Removed unused variable
 ) {
-  explCount = Math.min(explCount, 3);
+  // explCount = Math.min(explCount, 3); // Removed unused variable
 
   try {
     const completion = await client.chat.completions.create({
@@ -188,7 +211,7 @@ export async function POST(req: Request) {
     }
 
     return NextResponse.json({ result: JSON.stringify(result, null, 2) });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

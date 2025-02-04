@@ -17,8 +17,48 @@ function validateJson(response: string) {
   }
 }
 
+// Define a type for the pathos structure
+interface Pathos {
+  Sentiment?: {
+    Score?: number;
+    Joy?: number;
+    Sadness?: number;
+    Reasoning?: string;
+  };
+  Vulnerability?: {
+    Score?: number;
+    Trust?: number;
+    Disgust?: number;
+    Reasoning?: string;
+  };
+  Expectation?: {
+    Score?: number;
+    Anticipation?: number;
+    Surprise?: number;
+    Reasoning?: string;
+  };
+  Alertness?: {
+    Score?: number;
+    Rage?: number;
+    Fear?: number;
+    Reasoning?: string;
+  };
+  Togetherness?: {
+    Score?: number;
+    Unity?: number;
+    Polarity?: number;
+    Reasoning?: string;
+  };
+  Pity?: {
+    Score?: number;
+    Empathy?: number;
+    "Self-Sympathy"?: number;
+    Reasoning?: string;
+  };
+}
+
 // Function to format pathos output
-function formatPathosOutput(rawData: any) {
+function formatPathosOutput(rawData: Pathos) {
   try {
     return {
       Pathos: [
@@ -73,12 +113,12 @@ function formatPathosOutput(rawData: any) {
 }
 
 async function getPathos(
-  comment: string,
-  explCount: number = 1,
-  sentenceType: string = "declarative",
-  sentenceStructure: string = "simple"
+  comment: string
+  // explCount: number = 1, // Removed unused variable
+  // sentenceType: string = "declarative", // Removed unused variable
+  // sentenceStructure: string = "simple" // Removed unused variable
 ) {
-  explCount = Math.min(explCount, 3);
+  // explCount = Math.min(explCount, 3); // Removed unused variable
 
   try {
     const completion = await client.chat.completions.create({
@@ -87,46 +127,46 @@ async function getPathos(
         {
           role: "system",
           content: `Analyze the given comment by evaluating the following pathos categories: Sentiment, Vulnerability, Expectation, Alertness, Togetherness, and Pity.
-        Each category must include:
-        1. Dimensional (D) scores must be probabilistic values between 0 and 1 (excluding 1).
-        2. Primitive (P) scores must be probabilistic values between -1 and 1 (excluding -1 and 1).
-        3. A reasoning explanation for each score, written in one concise sentence.
-        The reasoning field is mandatory and must not be empty under any circumstance.
-        The response must be a valid JSON object with the following structure:
-        {
-            'Sentiment': {'Score': float, 'Joy': float, 'Sadness': float, 'Reasoning': string},
-            'Vulnerability': {'Score': float, 'Trust': float, 'Disgust': float, 'Reasoning': string},
-            'Expectation': {'Score': float, 'Anticipation': float, 'Surprise': float, 'Reasoning': string},
-            'Alertness': {'Score': float, 'Rage': float, 'Fear': float, 'Reasoning': string},
-            'Togetherness': {'Score': float, 'Unity': float, 'Polarity': float, 'Reasoning': string},
-            'Pity': {'Score': float, 'Empathy': float, 'Self-Sympathy': float, 'Reasoning': string}
-        }
-        Ensure every category includes both scores and reasoning.
+          Each category must include:
+          1. Dimensional (D) scores must be probabilistic values between 0 and 1 (excluding 1).
+          2. Primitive (P) scores must be probabilistic values between -1 and 1 (excluding -1 and 1).
+          3. A reasoning explanation for each score, written in one concise sentence.
+          The reasoning field is mandatory and must not be empty under any circumstance.
+          The response must be a valid JSON object with the following structure:
+          {
+              'Sentiment': {'Score': float, 'Joy': float, 'Sadness': float, 'Reasoning': string},
+              'Vulnerability': {'Score': float, 'Trust': float, 'Disgust': float, 'Reasoning': string},
+              'Expectation': {'Score': float, 'Anticipation': float, 'Surprise': float, 'Reasoning': string},
+              'Alertness': {'Score': float, 'Rage': float, 'Fear': float, 'Reasoning': string},
+              'Togetherness': {'Score': float, 'Unity': float, 'Polarity': float, 'Reasoning': string},
+              'Pity': {'Score': float, 'Empathy': float, 'Self-Sympathy': float, 'Reasoning': string}
+          }
+          Ensure every category includes both scores and reasoning.
 
-        Definitions for the categories:
-        1. Sentiment (D): Reflects the likelihood of the speaker evoking positive or negative emotions in the audience.
-        - Joy (P): The likelihood of the speaker evoking happiness, satisfaction, or enthusiasm in the audience.
-        - Sadness (P): The likelihood of the speaker evoking sorrow, empathy, or compassion in the audience.
+          Definitions for the categories:
+          1. Sentiment (D): Reflects the likelihood of the speaker evoking positive or negative emotions in the audience.
+          - Joy (P): The likelihood of the speaker evoking happiness, satisfaction, or enthusiasm in the audience.
+          - Sadness (P): The likelihood of the speaker evoking sorrow, empathy, or compassion in the audience.
 
-        2. Vulnerability (D): Reflects the likelihood of the speaker influencing the audience by appealing to their sense of powerlessness or emotional fragility.
-        - Trust (P): The likelihood of the speaker inspiring confidence and reliance in the audience.
-        - Disgust (P): The likelihood of the speaker evoking repulsion or moral objection in the audience.
+          2. Vulnerability (D): Reflects the likelihood of the speaker influencing the audience by appealing to their sense of powerlessness or emotional fragility.
+          - Trust (P): The likelihood of the speaker inspiring confidence and reliance in the audience.
+          - Disgust (P): The likelihood of the speaker evoking repulsion or moral objection in the audience.
 
-        3. Expectation (D): Reflects the likelihood of the speaker creating anticipation or surprise in the audience.
-        - Anticipation (P): The likelihood of the speaker evoking excitement or eagerness for future developments.
-        - Surprise (P): The likelihood of the speaker presenting unexpected or novel information that astonishes the audience.
+          3. Expectation (D): Reflects the likelihood of the speaker creating anticipation or surprise in the audience.
+          - Anticipation (P): The likelihood of the speaker evoking excitement or eagerness for future developments.
+          - Surprise (P): The likelihood of the speaker presenting unexpected or novel information that astonishes the audience.
 
-        4. Alertness (D): Reflects the likelihood of the speaker evoking heightened emotional responses in the audience.
-        - Rage (P): The likelihood of the speaker channeling or evoking anger, frustration, or outrage.
-        - Fear (P): The likelihood of the speaker evoking anxiety, concern, or dread as a persuasive tool.
+          4. Alertness (D): Reflects the likelihood of the speaker evoking heightened emotional responses in the audience.
+          - Rage (P): The likelihood of the speaker channeling or evoking anger, frustration, or outrage.
+          - Fear (P): The likelihood of the speaker evoking anxiety, concern, or dread as a persuasive tool.
 
-        5. Togetherness (D): Reflects the likelihood of the speaker fostering a sense of unity or division among the audience.
-        - Unity (P): The likelihood of the speaker fostering solidarity and shared purpose.
-        - Polarity (P): The likelihood of the speaker fostering division, opposition, or alienation.
+          5. Togetherness (D): Reflects the likelihood of the speaker fostering a sense of unity or division among the audience.
+          - Unity (P): The likelihood of the speaker fostering solidarity and shared purpose.
+          - Polarity (P): The likelihood of the speaker fostering division, opposition, or alienation.
 
-        6. Pity (D): Reflects the likelihood of the speaker influencing the audience through compassion or self-directed sympathy.
-        - Empathy (P): The likelihood of the speaker evoking compassion and understanding for others' struggles or pain.
-        - Self-Sympathy (P): The likelihood of the speaker invoking pity for their own challenges or suffering.`,
+          6. Pity (D): Reflects the likelihood of the speaker influencing the audience through compassion or self-directed sympathy.
+          - Empathy (P): The likelihood of the speaker evoking compassion and understanding for others' struggles or pain.
+          - Self-Sympathy (P): The likelihood of the speaker invoking pity for their own challenges or suffering.`,
         },
         {
           role: "user",
@@ -169,7 +209,7 @@ export async function POST(req: Request) {
     }
 
     return NextResponse.json({ result: JSON.stringify(result, null, 2) });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
