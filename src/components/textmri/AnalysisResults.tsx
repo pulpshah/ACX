@@ -1,27 +1,105 @@
 "use client";
 import { useState } from "react";
-import { exportToJson, exportToPdf, exportToHtml } from "@/utils/exportUtils";
+import {
+  exportToJson,
+  exportToPdf,
+  exportToHtml,
+  ExportInputData,
+} from "@/utils/exportUtils";
 
-interface WeightSettings {
-  rhetorical: {
-    ethos: number;
-    pathos: number;
-    logos: number;
+// Added TextMRIResult interface based on server schema
+interface TextMRIResult {
+  overview: {
+    objective_analysis: {
+      stated_objective: string;
+      achievement_level: number;
+      key_factors: string[];
+    };
+    context_impact: {
+      environmental_factors: {
+        factor: string;
+        impact_level: number;
+        observations: string[];
+      }[];
+      relationship_dynamics: {
+        dynamic: string;
+        strength: number;
+        observations: string[];
+      }[];
+    };
+    key_themes: string[];
+    overall_effectiveness: number;
   };
-  content: {
-    clarity: number;
-    impact: number;
+  participant_analysis: {
+    participant_id: string;
+    engagement_level: number;
+    communication_style: {
+      primary_style: string;
+      adaptability: number;
+      effectiveness: number;
+    };
+    influence_patterns: {
+      technique: string;
+      frequency: number;
+      effectiveness: number;
+    }[];
+    behavioral_insights: string[];
+    development_areas: string[];
+  }[];
+  turn_analysis: {
+    turn_id: number;
+    speaker: string;
+    content_analysis: {
+      main_point: string;
+      clarity: number;
+      impact: number;
+    };
+    rhetorical_elements: {
+      ethos: number;
+      pathos: number;
+      logos: number;
+    };
+    response_quality: {
+      relevance: number;
+      constructiveness: number;
+    };
+    psychological_indicators: string[];
+    turn_impact: string;
+  }[];
+  conversation_dynamics: {
+    flow_analysis: {
+      pattern: string;
+      effectiveness: number;
+      bottlenecks: string[];
+    };
+    power_dynamics: {
+      pattern: string;
+      balance: number;
+      observations: string[];
+    };
+    emotional_progression: {
+      trajectory: string;
+      key_moments: { moment: string; impact: string }[];
+    };
+    topic_management: {
+      coherence: number;
+      development: string;
+      transitions: string[];
+    };
   };
-  response: {
-    relevance: number;
-    constructiveness: number;
-  };
+  recommendations: {
+    target: string;
+    observation: string;
+    suggestion: string;
+    expected_impact: string;
+  }[];
 }
 
+// Updated props with proper types
 interface AnalysisResultsProps {
-  results: any;
+  results: string | TextMRIResult;
   onBack: () => void;
-  analysisData: any;
+  analysisData: ExportInputData;
 }
 
 export default function AnalysisResults({
@@ -31,7 +109,7 @@ export default function AnalysisResults({
 }: AnalysisResultsProps) {
   const [activeTab, setActiveTab] = useState("overview");
   const [showWeightSettings, setShowWeightSettings] = useState(false);
-  const [weights, setWeights] = useState<WeightSettings>({
+  const [weights, setWeights] = useState({
     rhetorical: {
       ethos: 1,
       pathos: 1,
@@ -47,11 +125,11 @@ export default function AnalysisResults({
     },
   });
 
-  const parsedResults =
+  const parsedResults: TextMRIResult =
     typeof results === "string" ? JSON.parse(results) : results;
 
   const handleWeightChange = (
-    category: keyof WeightSettings,
+    category: keyof typeof weights,
     metric: string,
     value: number
   ) => {
@@ -64,7 +142,9 @@ export default function AnalysisResults({
     }));
   };
 
-  const calculateWeightedScore = (turn: any) => {
+  const calculateWeightedScore = (
+    turn: TextMRIResult["turn_analysis"][number]
+  ) => {
     const rhetoricalScore =
       (turn.rhetorical_elements.ethos * weights.rhetorical.ethos +
         turn.rhetorical_elements.pathos * weights.rhetorical.pathos +
@@ -158,7 +238,10 @@ export default function AnalysisResults({
             <h4 className="font-medium mb-3">Environmental Factors</h4>
             <div className="space-y-4">
               {parsedResults.overview.context_impact.environmental_factors.map(
-                (factor: any, i: number) => (
+                (
+                  factor: TextMRIResult["overview"]["context_impact"]["environmental_factors"][number],
+                  i: number
+                ) => (
                   <div key={i} className="space-y-2">
                     <p className="font-medium text-purple-400">
                       {factor.factor}
@@ -178,7 +261,10 @@ export default function AnalysisResults({
             <h4 className="font-medium mb-3">Relationship Dynamics</h4>
             <div className="space-y-4">
               {parsedResults.overview.context_impact.relationship_dynamics.map(
-                (dynamic: any, i: number) => (
+                (
+                  dynamic: TextMRIResult["overview"]["context_impact"]["relationship_dynamics"][number],
+                  i: number
+                ) => (
                   <div key={i} className="space-y-2">
                     <p className="font-medium text-purple-400">
                       {dynamic.dynamic}
@@ -222,156 +308,166 @@ export default function AnalysisResults({
 
   const renderParticipantAnalysis = () => (
     <div className="space-y-6">
-      {parsedResults.participant_analysis.map((participant: any, i: number) => (
-        <div key={i} className="bg-gray-800 rounded-lg p-6">
-          <h3 className="text-xl font-semibold mb-4">
-            Participant {participant.participant_id}
-          </h3>
-          <div className="space-y-6">
-            {/* Engagement Level */}
-            <div>
-              <h4 className="font-medium mb-2">Engagement Level</h4>
-              {renderProgressBar(participant.engagement_level)}
-            </div>
-
-            {/* Communication Style */}
-            <div>
-              <h4 className="font-medium mb-3">Communication Style</h4>
-              <p className="text-purple-400 mb-2">
-                {participant.communication_style.primary_style}
-              </p>
-              <div className="space-y-2">
-                {renderProgressBar(
-                  participant.communication_style.adaptability,
-                  "Adaptability"
-                )}
-                {renderProgressBar(
-                  participant.communication_style.effectiveness,
-                  "Effectiveness"
-                )}
-              </div>
-            </div>
-
-            {/* Influence Patterns */}
-            <div>
-              <h4 className="font-medium mb-3">Influence Patterns</h4>
-              <div className="space-y-4">
-                {participant.influence_patterns.map(
-                  (pattern: any, j: number) => (
-                    <div key={j} className="space-y-2">
-                      <p className="text-purple-400">{pattern.technique}</p>
-                      {renderProgressBar(pattern.frequency, "Frequency")}
-                      {renderProgressBar(
-                        pattern.effectiveness,
-                        "Effectiveness"
-                      )}
-                    </div>
-                  )
-                )}
-              </div>
-            </div>
-
-            {/* Insights and Development */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {parsedResults.participant_analysis.map(
+        (
+          participant: TextMRIResult["participant_analysis"][number],
+          i: number
+        ) => (
+          <div key={i} className="bg-gray-800 rounded-lg p-6">
+            <h3 className="text-xl font-semibold mb-4">
+              Participant {participant.participant_id}
+            </h3>
+            <div className="space-y-6">
+              {/* Engagement Level */}
               <div>
-                <h4 className="font-medium mb-2">Behavioral Insights</h4>
-                <ul className="list-disc list-inside space-y-1 text-gray-300">
-                  {participant.behavioral_insights.map(
-                    (insight: string, k: number) => (
-                      <li key={k}>{insight}</li>
+                <h4 className="font-medium mb-2">Engagement Level</h4>
+                {renderProgressBar(participant.engagement_level)}
+              </div>
+
+              {/* Communication Style */}
+              <div>
+                <h4 className="font-medium mb-3">Communication Style</h4>
+                <p className="text-purple-400 mb-2">
+                  {participant.communication_style.primary_style}
+                </p>
+                <div className="space-y-2">
+                  {renderProgressBar(
+                    participant.communication_style.adaptability,
+                    "Adaptability"
+                  )}
+                  {renderProgressBar(
+                    participant.communication_style.effectiveness,
+                    "Effectiveness"
+                  )}
+                </div>
+              </div>
+
+              {/* Influence Patterns */}
+              <div>
+                <h4 className="font-medium mb-3">Influence Patterns</h4>
+                <div className="space-y-4">
+                  {participant.influence_patterns.map(
+                    (
+                      pattern: TextMRIResult["participant_analysis"][number]["influence_patterns"][number],
+                      j: number
+                    ) => (
+                      <div key={j} className="space-y-2">
+                        <p className="text-purple-400">{pattern.technique}</p>
+                        {renderProgressBar(pattern.frequency, "Frequency")}
+                        {renderProgressBar(
+                          pattern.effectiveness,
+                          "Effectiveness"
+                        )}
+                      </div>
                     )
                   )}
-                </ul>
+                </div>
               </div>
-              <div>
-                <h4 className="font-medium mb-2">Development Areas</h4>
-                <ul className="list-disc list-inside space-y-1 text-gray-300">
-                  {participant.development_areas.map(
-                    (area: string, l: number) => (
-                      <li key={l}>{area}</li>
-                    )
-                  )}
-                </ul>
+
+              {/* Insights and Development */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <h4 className="font-medium mb-2">Behavioral Insights</h4>
+                  <ul className="list-disc list-inside space-y-1 text-gray-300">
+                    {participant.behavioral_insights.map(
+                      (insight: string, k: number) => (
+                        <li key={k}>{insight}</li>
+                      )
+                    )}
+                  </ul>
+                </div>
+                <div>
+                  <h4 className="font-medium mb-2">Development Areas</h4>
+                  <ul className="list-disc list-inside space-y-1 text-gray-300">
+                    {participant.development_areas.map(
+                      (area: string, l: number) => (
+                        <li key={l}>{area}</li>
+                      )
+                    )}
+                  </ul>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      ))}
+        )
+      )}
     </div>
   );
 
   const renderTurnAnalysis = () => (
     <div className="space-y-6">
-      {parsedResults.turn_analysis.map((turn: any, i: number) => (
-        <div key={i} className="bg-gray-800 rounded-lg p-6">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-xl font-semibold">Turn {turn.turn_id}</h3>
-            <span className="text-purple-400">{turn.speaker}</span>
-          </div>
-          <div className="space-y-6">
-            {/* Content Analysis */}
-            <div>
-              <h4 className="font-medium mb-3">Content Analysis</h4>
-              <p className="text-gray-300 mb-3">
-                {turn.content_analysis.main_point}
-              </p>
-              <div className="space-y-2">
-                {renderProgressBar(turn.content_analysis.clarity, "Clarity")}
-                {renderProgressBar(turn.content_analysis.impact, "Impact")}
-              </div>
+      {parsedResults.turn_analysis.map(
+        (turn: TextMRIResult["turn_analysis"][number], i: number) => (
+          <div key={i} className="bg-gray-800 rounded-lg p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-semibold">Turn {turn.turn_id}</h3>
+              <span className="text-purple-400">{turn.speaker}</span>
             </div>
-
-            {/* Rhetorical Elements */}
-            <div>
-              <h4 className="font-medium mb-3">Rhetorical Elements</h4>
-              <div className="space-y-2">
-                {renderProgressBar(turn.rhetorical_elements.ethos, "Ethos")}
-                {renderProgressBar(turn.rhetorical_elements.pathos, "Pathos")}
-                {renderProgressBar(turn.rhetorical_elements.logos, "Logos")}
-              </div>
-            </div>
-
-            {/* Response Quality */}
-            <div>
-              <h4 className="font-medium mb-3">Response Quality</h4>
-              <div className="space-y-2">
-                {renderProgressBar(
-                  turn.response_quality.relevance,
-                  "Relevance"
-                )}
-                {renderProgressBar(
-                  turn.response_quality.constructiveness,
-                  "Constructive"
-                )}
-              </div>
-            </div>
-
-            {/* Psychological Indicators & Impact */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-6">
+              {/* Content Analysis */}
               <div>
-                <h4 className="font-medium mb-2">Psychological Indicators</h4>
-                <ul className="list-disc list-inside space-y-1 text-gray-300">
-                  {turn.psychological_indicators.map(
-                    (indicator: string, j: number) => (
-                      <li key={j}>{indicator}</li>
-                    )
+                <h4 className="font-medium mb-3">Content Analysis</h4>
+                <p className="text-gray-300 mb-3">
+                  {turn.content_analysis.main_point}
+                </p>
+                <div className="space-y-2">
+                  {renderProgressBar(turn.content_analysis.clarity, "Clarity")}
+                  {renderProgressBar(turn.content_analysis.impact, "Impact")}
+                </div>
+              </div>
+
+              {/* Rhetorical Elements */}
+              <div>
+                <h4 className="font-medium mb-3">Rhetorical Elements</h4>
+                <div className="space-y-2">
+                  {renderProgressBar(turn.rhetorical_elements.ethos, "Ethos")}
+                  {renderProgressBar(turn.rhetorical_elements.pathos, "Pathos")}
+                  {renderProgressBar(turn.rhetorical_elements.logos, "Logos")}
+                </div>
+              </div>
+
+              {/* Response Quality */}
+              <div>
+                <h4 className="font-medium mb-3">Response Quality</h4>
+                <div className="space-y-2">
+                  {renderProgressBar(
+                    turn.response_quality.relevance,
+                    "Relevance"
                   )}
-                </ul>
+                  {renderProgressBar(
+                    turn.response_quality.constructiveness,
+                    "Constructive"
+                  )}
+                </div>
               </div>
-              <div>
-                <h4 className="font-medium mb-2">Turn Impact</h4>
-                <p className="text-gray-300">{turn.turn_impact}</p>
-              </div>
-            </div>
 
-            {/* Add weighted score */}
-            <div className="mt-4 pt-4 border-t border-gray-700">
-              <h4 className="font-medium mb-2">Weighted Score</h4>
-              {renderProgressBar(calculateWeightedScore(turn), "Overall")}
+              {/* Psychological Indicators & Impact */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <h4 className="font-medium mb-2">Psychological Indicators</h4>
+                  <ul className="list-disc list-inside space-y-1 text-gray-300">
+                    {turn.psychological_indicators.map(
+                      (indicator: string, j: number) => (
+                        <li key={j}>{indicator}</li>
+                      )
+                    )}
+                  </ul>
+                </div>
+                <div>
+                  <h4 className="font-medium mb-2">Turn Impact</h4>
+                  <p className="text-gray-300">{turn.turn_impact}</p>
+                </div>
+              </div>
+
+              {/* Add weighted score */}
+              <div className="mt-4 pt-4 border-t border-gray-700">
+                <h4 className="font-medium mb-2">Weighted Score</h4>
+                {renderProgressBar(calculateWeightedScore(turn), "Overall")}
+              </div>
             </div>
           </div>
-        </div>
-      ))}
+        )
+      )}
     </div>
   );
 
@@ -439,7 +535,10 @@ export default function AnalysisResults({
             <h4 className="font-medium mb-2">Key Moments</h4>
             <div className="space-y-3">
               {parsedResults.conversation_dynamics.emotional_progression.key_moments.map(
-                (moment: any, i: number) => (
+                (
+                  moment: TextMRIResult["conversation_dynamics"]["emotional_progression"]["key_moments"][number],
+                  i: number
+                ) => (
                   <div key={i} className="bg-gray-700/50 rounded p-3">
                     <p className="font-medium text-purple-400 mb-1">
                       {moment.moment}
@@ -467,7 +566,7 @@ export default function AnalysisResults({
           <div>
             <h4 className="font-medium mb-2">Topic Transitions</h4>
             <ul className="list-disc list-inside space-y-1 text-gray-300">
-              {parsedResults.conversation_dynamics?.topic_management?.transitions?.map?.(
+              {parsedResults.conversation_dynamics?.topic_management?.transitions?.map(
                 (transition: string, i: number) => <li key={i}>{transition}</li>
               ) || "No topic transitions found"}
             </ul>
@@ -479,29 +578,31 @@ export default function AnalysisResults({
 
   const renderRecommendations = () => (
     <div className="space-y-6">
-      {parsedResults.recommendations.map((rec: any, i: number) => (
-        <div key={i} className="bg-gray-800 rounded-lg p-6">
-          <div className="flex items-center gap-2 mb-4">
-            <span className="px-3 py-1 rounded-full bg-purple-500/10 text-purple-400 text-sm">
-              {rec.target}
-            </span>
+      {parsedResults.recommendations.map(
+        (rec: TextMRIResult["recommendations"][number], i: number) => (
+          <div key={i} className="bg-gray-800 rounded-lg p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <span className="px-3 py-1 rounded-full bg-purple-500/10 text-purple-400 text-sm">
+                {rec.target}
+              </span>
+            </div>
+            <div className="space-y-3">
+              <div>
+                <h4 className="font-medium mb-1">Observation</h4>
+                <p className="text-gray-300">{rec.observation}</p>
+              </div>
+              <div>
+                <h4 className="font-medium mb-1">Suggestion</h4>
+                <p className="text-gray-300">{rec.suggestion}</p>
+              </div>
+              <div>
+                <h4 className="font-medium mb-1">Expected Impact</h4>
+                <p className="text-gray-300">{rec.expected_impact}</p>
+              </div>
+            </div>
           </div>
-          <div className="space-y-3">
-            <div>
-              <h4 className="font-medium mb-1">Observation</h4>
-              <p className="text-gray-300">{rec.observation}</p>
-            </div>
-            <div>
-              <h4 className="font-medium mb-1">Suggestion</h4>
-              <p className="text-gray-300">{rec.suggestion}</p>
-            </div>
-            <div>
-              <h4 className="font-medium mb-1">Expected Impact</h4>
-              <p className="text-gray-300">{rec.expected_impact}</p>
-            </div>
-          </div>
-        </div>
-      ))}
+        )
+      )}
     </div>
   );
 

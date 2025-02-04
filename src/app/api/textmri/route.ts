@@ -6,10 +6,147 @@ const client = new Groq({
   apiKey: process.env.GROQ_API_KEY,
 });
 
+// @textmri
+interface TextMRIResult {
+  overview: {
+    objective_analysis: {
+      stated_objective: string;
+      achievement_level: number;
+      key_factors: string[];
+    };
+    context_impact: {
+      environmental_factors: {
+        factor: string;
+        impact_level: number;
+        observations: string[];
+      }[];
+      relationship_dynamics: {
+        dynamic: string;
+        strength: number;
+        observations: string[];
+      }[];
+    };
+    key_themes: string[];
+    overall_effectiveness: number;
+  };
+  participant_analysis: {
+    participant_id: string;
+    engagement_level: number;
+    communication_style: {
+      primary_style: string;
+      adaptability: number;
+      effectiveness: number;
+    };
+    influence_patterns: {
+      technique: string;
+      frequency: number;
+      effectiveness: number;
+    }[];
+    behavioral_insights: string[];
+    development_areas: string[];
+  }[];
+  turn_analysis: {
+    turn_id: number;
+    speaker: string;
+    content_analysis: {
+      main_point: string;
+      clarity: number;
+      impact: number;
+    };
+    rhetorical_elements: {
+      ethos: number;
+      pathos: number;
+      logos: number;
+    };
+    response_quality: {
+      relevance: number;
+      constructiveness: number;
+    };
+    psychological_indicators: string[];
+    turn_impact: string;
+  }[];
+  conversation_dynamics: {
+    flow_analysis: {
+      pattern: string;
+      effectiveness: number;
+      bottlenecks: string[];
+    };
+    power_dynamics: {
+      pattern: string;
+      balance: number;
+      observations: string[];
+    };
+    emotional_progression: {
+      trajectory: string;
+      key_moments: {
+        moment: string;
+        impact: string;
+      }[];
+    };
+    topic_management: {
+      coherence: number;
+      development: string;
+      transitions: string[];
+    };
+  };
+  recommendations: {
+    target: string;
+    observation: string;
+    suggestion: string;
+    expected_impact: string;
+  }[];
+}
+
+interface TextMRIInput {
+  objective: string;
+  environmentalContext: unknown;
+  conversationContext: unknown;
+  participants: unknown[];
+  turns: unknown[];
+  date?: string;
+  time?: string;
+}
+
+const defaultOverview: TextMRIResult["overview"] = {
+  objective_analysis: {
+    stated_objective: "",
+    achievement_level: 0,
+    key_factors: [],
+  },
+  context_impact: {
+    environmental_factors: [],
+    relationship_dynamics: [],
+  },
+  key_themes: [],
+  overall_effectiveness: 0,
+};
+
+const defaultConversationDynamics: TextMRIResult["conversation_dynamics"] = {
+  flow_analysis: {
+    pattern: "",
+    effectiveness: 0,
+    bottlenecks: [],
+  },
+  power_dynamics: {
+    pattern: "",
+    balance: 0,
+    observations: [],
+  },
+  emotional_progression: {
+    trajectory: "",
+    key_moments: [],
+  },
+  topic_management: {
+    coherence: 0,
+    development: "",
+    transitions: [],
+  },
+};
+
 // Function to validate JSON
-function validateJson(response: string) {
+function validateJson(response: string): unknown | null {
   try {
-    const jsonData = JSON.parse(response);
+    const jsonData: unknown = JSON.parse(response);
     return jsonData;
   } catch (e) {
     console.error(`Invalid JSON: ${e}`);
@@ -18,29 +155,38 @@ function validateJson(response: string) {
 }
 
 // Function to format TextMRI output
-function formatTextMRIOutput(rawData: any) {
+function formatTextMRIOutput(rawData: unknown): TextMRIResult {
   try {
+    const data = rawData as Partial<TextMRIResult>;
     return {
-      overview: rawData.overview || {},
-      participant_analysis: rawData.participant_analysis || [],
-      turn_analysis: rawData.turn_analysis || [],
-      conversation_dynamics: rawData.conversation_dynamics || {},
-      recommendations: rawData.recommendations || [],
+      overview: data.overview ?? defaultOverview,
+      participant_analysis: data.participant_analysis ?? [],
+      turn_analysis: data.turn_analysis ?? [],
+      conversation_dynamics:
+        data.conversation_dynamics ?? defaultConversationDynamics,
+      recommendations: data.recommendations ?? [],
     };
   } catch (e) {
-    return { error: `Invalid response structure: ${e}` };
+    console.error(`Invalid response structure: ${e}`);
+    return {
+      overview: defaultOverview,
+      participant_analysis: [],
+      turn_analysis: [],
+      conversation_dynamics: defaultConversationDynamics,
+      recommendations: [],
+    };
   }
 }
 
 async function analyzeConversation(
   objective: string,
-  environmentalContext: any,
-  conversationContext: any,
-  participants: any[],
-  turns: any[],
+  environmentalContext: unknown,
+  conversationContext: unknown,
+  participants: unknown[],
+  turns: unknown[],
   date?: string,
   time?: string
-) {
+): Promise<TextMRIResult | null> {
   try {
     const completion = await client.chat.completions.create({
       model: "llama-3.3-70b-versatile",
@@ -227,6 +373,7 @@ Ensure your analysis is:
 
 export async function POST(req: Request) {
   try {
+    const data = (await req.json()) as TextMRIInput;
     const {
       objective,
       environmentalContext,
@@ -235,7 +382,7 @@ export async function POST(req: Request) {
       turns,
       date,
       time,
-    } = await req.json();
+    } = data;
 
     const result = await analyzeConversation(
       objective,
@@ -257,7 +404,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ result: JSON.stringify(result, null, 2) });
   } catch (error) {
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: "Internal server error"+error },
       { status: 500 }
     );
   }

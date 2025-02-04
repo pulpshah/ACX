@@ -1,7 +1,136 @@
 import { jsPDF } from "jspdf";
 import html2canvas from "html2canvas";
 
-export const exportToJson = (data: any) => {
+// Define interfaces to remove all any usage
+
+export interface WeightSettings {
+  rhetorical: {
+    ethos: number;
+    pathos: number;
+    logos: number;
+  };
+  content: {
+    clarity: number;
+    impact: number;
+  };
+  response: {
+    relevance: number;
+    constructiveness: number;
+  };
+}
+
+export interface TextMRIResult {
+  overview: {
+    objective_analysis: {
+      stated_objective: string;
+      achievement_level: number;
+      key_factors: string[];
+    };
+    context_impact: {
+      environmental_factors: {
+        factor: string;
+        impact_level: number;
+        observations: string[];
+      }[];
+      relationship_dynamics: {
+        dynamic: string;
+        strength: number;
+        observations: string[];
+      }[];
+    };
+    key_themes: string[];
+    overall_effectiveness: number;
+  };
+  participant_analysis: {
+    participant_id: string;
+    engagement_level: number;
+    communication_style: {
+      primary_style: string;
+      adaptability: number;
+      effectiveness: number;
+    };
+    influence_patterns: {
+      technique: string;
+      frequency: number;
+      effectiveness: number;
+    }[];
+    behavioral_insights: string[];
+    development_areas: string[];
+  }[];
+  turn_analysis: {
+    turn_id: number;
+    speaker: string;
+    content_analysis: {
+      main_point: string;
+      clarity: number;
+      impact: number;
+    };
+    rhetorical_elements: {
+      ethos: number;
+      pathos: number;
+      logos: number;
+    };
+    response_quality: {
+      relevance: number;
+      constructiveness: number;
+    };
+    psychological_indicators: string[];
+    turn_impact: string;
+  }[];
+  conversation_dynamics: {
+    flow_analysis: {
+      pattern: string;
+      effectiveness: number;
+      bottlenecks: string[];
+    };
+    power_dynamics: {
+      pattern: string;
+      balance: number;
+      observations: string[];
+    };
+    emotional_progression: {
+      trajectory: string;
+      key_moments: { moment: string; impact: string }[];
+    };
+    topic_management: {
+      coherence: number;
+      development: string;
+      transitions: string[];
+    };
+  };
+  recommendations: {
+    target: string;
+    observation: string;
+    suggestion: string;
+    expected_impact: string;
+  }[];
+}
+
+export interface ExportInputData {
+  context: {
+    globalObjectives: { priority: number | string; text: string }[];
+    localObjectives: { priority: number | string; text: string }[];
+    environmentalContext?: Record<string, unknown>;
+    conversationContext?: Record<string, unknown>;
+  };
+  participants: {
+    name?: string;
+    role?: string;
+    position?: string;
+    objectives?: { priority?: number | string; text?: string }[];
+    demographics?: Record<string, unknown>;
+    psychographics?: Record<string, unknown>;
+  }[];
+}
+
+export interface ExportData {
+  input: ExportInputData;
+  results: string | TextMRIResult;
+  weights: WeightSettings;
+}
+
+// Updated function signatures using ExportData
+export const exportToJson = (data: ExportData): void => {
   const jsonString = JSON.stringify(data, null, 2);
   const blob = new Blob([jsonString], { type: "application/json" });
   const url = URL.createObjectURL(blob);
@@ -14,7 +143,7 @@ export const exportToJson = (data: any) => {
   URL.revokeObjectURL(url);
 };
 
-export const exportToPdf = async (data: any) => {
+export const exportToPdf = async (data: ExportData): Promise<void> => {
   const tempDiv = document.createElement("div");
   tempDiv.innerHTML = generateHtmlContent(data);
   tempDiv.style.padding = "20px";
@@ -51,7 +180,7 @@ export const exportToPdf = async (data: any) => {
     pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
     heightLeft -= pageHeight;
 
-    // Add other pages
+    // Add other pages if needed
     while (heightLeft > 0) {
       position = -pageHeight * page;
       pdf.addPage();
@@ -66,7 +195,7 @@ export const exportToPdf = async (data: any) => {
   }
 };
 
-export const exportToHtml = (data: any) => {
+export const exportToHtml = (data: ExportData): void => {
   const htmlContent = generateHtmlContent(data);
   const blob = new Blob([htmlContent], { type: "text/html" });
   const url = URL.createObjectURL(blob);
@@ -79,18 +208,20 @@ export const exportToHtml = (data: any) => {
   URL.revokeObjectURL(url);
 };
 
-const generateHtmlContent = (data: any) => {
-  const { input, results, weights } = data;
-  const parsedResults =
-    typeof results === "string" ? JSON.parse(results) : results;
+// Generic helper function to safely access nested properties
+function getValue<T>(obj: unknown, path: string[], defaultValue: T): T {
+  return path.reduce((acc: unknown, key: string): unknown => {
+    if (acc !== null && typeof acc === "object" && key in (acc as Record<string, unknown>)) {
+      return (acc as Record<string, unknown>)[key];
+    }
+    return defaultValue;
+  }, obj) as T;
+}
 
-  // Helper function to handle missing data
-  const getValue = (obj: any, path: string[], defaultValue = "Not given") => {
-    return path.reduce(
-      (acc, key) => (acc && acc[key] !== undefined ? acc[key] : defaultValue),
-      obj
-    );
-  };
+const generateHtmlContent = (data: ExportData): string => {
+  const { input, results, weights } = data;
+  const parsedResults: TextMRIResult =
+    typeof results === "string" ? JSON.parse(results) : results;
 
   return `
     <!DOCTYPE html>
@@ -233,12 +364,10 @@ const generateHtmlContent = (data: any) => {
                 <div class="progress-container">
                   <div class="progress-label">
                     <span>${key}</span>
-                    <span>${(value as number).toFixed(1)}</span>
+                    <span>${value.toFixed(1)}</span>
                   </div>
                   <div class="progress-bar">
-                    <div class="progress-fill" style="width: ${
-                      ((value as number) / 2) * 100
-                    }%"></div>
+                    <div class="progress-fill" style="width: ${(value / 2) * 100}%"></div>
                   </div>
                 </div>
               `
@@ -253,12 +382,10 @@ const generateHtmlContent = (data: any) => {
                 <div class="progress-container">
                   <div class="progress-label">
                     <span>${key}</span>
-                    <span>${(value as number).toFixed(1)}</span>
+                    <span>${value.toFixed(1)}</span>
                   </div>
                   <div class="progress-bar">
-                    <div class="progress-fill" style="width: ${
-                      ((value as number) / 2) * 100
-                    }%"></div>
+                    <div class="progress-fill" style="width: ${(value / 2) * 100}%"></div>
                   </div>
                 </div>
               `
@@ -273,12 +400,10 @@ const generateHtmlContent = (data: any) => {
                 <div class="progress-container">
                   <div class="progress-label">
                     <span>${key}</span>
-                    <span>${(value as number).toFixed(1)}</span>
+                    <span>${value.toFixed(1)}</span>
                   </div>
                   <div class="progress-bar">
-                    <div class="progress-fill" style="width: ${
-                      ((value as number) / 2) * 100
-                    }%"></div>
+                    <div class="progress-fill" style="width: ${(value / 2) * 100}%"></div>
                   </div>
                 </div>
               `
@@ -291,7 +416,6 @@ const generateHtmlContent = (data: any) => {
 
       <div class="section">
         <h2>Input Data</h2>
-        
         <h3>Objectives</h3>
         <div class="grid">
           <div class="card">
@@ -299,7 +423,7 @@ const generateHtmlContent = (data: any) => {
             <ul>
               ${input.context.globalObjectives
                 .map(
-                  (obj: any) => `
+                  (obj) => `
                 <li>
                   <span class="highlight">Priority ${obj.priority}</span>
                   ${obj.text}
@@ -314,7 +438,7 @@ const generateHtmlContent = (data: any) => {
             <ul>
               ${input.context.localObjectives
                 .map(
-                  (obj: any) => `
+                  (obj) => `
                 <li>
                   <span class="highlight">Priority ${obj.priority}</span>
                   ${obj.text}
@@ -330,148 +454,108 @@ const generateHtmlContent = (data: any) => {
         <div class="grid">
           <div class="card">
             <h4>Environmental Context</h4>
-            ${
-              Object.entries(input.context?.environmentalContext || {})
-                .filter(
-                  ([key]) => key !== "selectedFields" && key !== "otherValues"
-                )
-                .map(
-                  ([key, value]) => `
+            ${Object.entries(input.context.environmentalContext || {})
+              .filter(([, value]) => value !== undefined)
+              .map(
+                ([key, value]) => `
                 <div>
                   <strong>${key}:</strong> ${value || "Not given"}
                 </div>
               `
-                )
-                .join("") || "No environmental context provided"
-            }
+              )
+              .join("") || "No environmental context provided"}
           </div>
           <div class="card">
             <h4>Conversation Context</h4>
-            ${
-              Object.entries(input.context?.conversationContext || {})
-                .filter(
-                  ([key]) => key !== "selectedFields" && key !== "otherValues"
-                )
-                .map(
-                  ([key, value]) => `
+            ${Object.entries(input.context.conversationContext || {})
+              .filter(([, value]) => value !== undefined)
+              .map(
+                ([key, value]) => `
                 <div>
                   <strong>${key}:</strong> ${value || "Not given"}
                 </div>
               `
-                )
-                .join("") || "No conversation context provided"
-            }
+              )
+              .join("") || "No conversation context provided"}
           </div>
         </div>
 
         <h3>Participants</h3>
         <div class="grid">
-          ${
-            (input.participants || [])
-              .map(
-                (p: any) => `
+          ${input.participants.length > 0
+            ? input.participants
+                .map(
+                  (p) => `
             <div class="card">
               <h4>${p.name || "Unnamed Participant"}</h4>
               <div><strong>Role:</strong> ${p.role || "Not given"}</div>
               <div><strong>Position:</strong> ${p.position || "Not given"}</div>
-              
               <h5>Objectives</h5>
               <ul>
-                ${
-                  (p.objectives || [])
-                    .map(
-                      (obj: any) => `
+                ${(p.objectives && p.objectives.length > 0
+                  ? p.objectives
+                      .map(
+                        (obj) => `
                   <li>
-                    <span class="highlight">Priority ${
-                      obj.priority || "Not given"
-                    }</span>
+                    <span class="highlight">Priority ${obj.priority || "Not given"}</span>
                     ${obj.text || "Not given"}
                   </li>
                 `
-                    )
-                    .join("") || "<li>No objectives provided</li>"
-                }
+                      )
+                      .join("")
+                  : "<li>No objectives provided</li>")}
               </ul>
-
               <h5>Demographics</h5>
-              ${
-                Object.entries(p.demographics || {})
-                  .filter(
-                    ([key]) => key !== "selectedFields" && key !== "otherValues"
-                  )
-                  .map(
-                    ([key, value]) => `
+              ${Object.entries(p.demographics || {})
+                .map(
+                  ([key, value]) => `
                   <div>
                     <strong>${key}:</strong> ${value || "Not given"}
                   </div>
                 `
-                  )
-                  .join("") || "<div>No demographics provided</div>"
-              }
-
+                )
+                .join("") || "<div>No demographics provided</div>"}
               <h5>Psychographics</h5>
-              ${
-                Object.entries(p.psychographics || {})
-                  .filter(
-                    ([key]) => key !== "selectedFields" && key !== "otherValues"
-                  )
-                  .map(
-                    ([key, value]) => `
+              ${Object.entries(p.psychographics || {})
+                .map(
+                  ([key, value]) => `
                   <div>
                     <strong>${key}:</strong> ${value || "Not given"}
                   </div>
                 `
-                  )
-                  .join("") || "<div>No psychographics provided</div>"
-              }
+                )
+                .join("") || "<div>No psychographics provided</div>"}
             </div>
           `
-              )
-              .join("") || "<div class='card'>No participants provided</div>"
-          }
+                )
+                .join("")
+            : "<div class='card'>No participants provided</div>"}
         </div>
       </div>
 
       <div class="section">
         <h2>Analysis Results</h2>
-        
         <h3>Overview</h3>
         <div class="card">
           <h4>Objective Analysis</h4>
-          <p>${getValue(parsedResults, [
-            "overview",
-            "objective_analysis",
-            "stated_objective",
-          ])}</p>
+          <p>${getValue<string>(parsedResults, ["overview", "objective_analysis", "stated_objective"], "Not given")}</p>
           <div class="progress-container">
             <div class="progress-label">
               <span>Achievement Level</span>
               <span>${(
-                getValue(parsedResults, [
-                  "overview",
-                  "objective_analysis",
-                  "achievement_level",
-                ]) * 100
+                getValue<number>(parsedResults, ["overview", "objective_analysis", "achievement_level"], 0) * 100
               ).toFixed(0)}%</span>
             </div>
             <div class="progress-bar">
-              <div class="progress-fill" style="width: ${
-                getValue(parsedResults, [
-                  "overview",
-                  "objective_analysis",
-                  "achievement_level",
-                ]) * 100
-              }%"></div>
+              <div class="progress-fill" style="width: ${(
+                getValue<number>(parsedResults, ["overview", "objective_analysis", "achievement_level"], 0) * 100
+              )}%"></div>
             </div>
           </div>
           <h5>Key Factors</h5>
           <ul>
-            ${getValue(parsedResults, [
-              "overview",
-              "objective_analysis",
-              "key_factors",
-            ])
-              .map((factor: string) => `<li>${factor}</li>`)
+            ${(getValue(parsedResults, ["overview", "objective_analysis", "key_factors"], []) as string[])
+              .map((factor) => `<li>${factor}</li>`)
               .join("")}
           </ul>
         </div>
@@ -480,99 +564,73 @@ const generateHtmlContent = (data: any) => {
         <div class="grid">
           <div class="card">
             <h4>Flow Analysis</h4>
-            <p>${getValue(parsedResults, [
-              "conversation_dynamics",
-              "flow_analysis",
-              "pattern",
-            ])}</p>
+            <p>${getValue<string>(parsedResults, ["conversation_dynamics", "flow_analysis", "pattern"], "Not given")}</p>
             <div class="progress-container">
               <div class="progress-label">
                 <span>Effectiveness</span>
                 <span>${(
-                  getValue(parsedResults, [
-                    "conversation_dynamics",
-                    "flow_analysis",
-                    "effectiveness",
-                  ]) * 100
+                  getValue<number>(parsedResults, ["conversation_dynamics", "flow_analysis", "effectiveness"], 0) * 100
                 ).toFixed(0)}%</span>
               </div>
               <div class="progress-bar">
-                <div class="progress-fill" style="width: ${
-                  getValue(parsedResults, [
-                    "conversation_dynamics",
-                    "flow_analysis",
-                    "effectiveness",
-                  ]) * 100
-                }%"></div>
+                <div class="progress-fill" style="width: ${(
+                  getValue<number>(parsedResults, ["conversation_dynamics", "flow_analysis", "effectiveness"], 0) * 100
+                )}%"></div>
               </div>
             </div>
           </div>
 
           <div class="card">
             <h4>Power Dynamics</h4>
-            <p>${getValue(parsedResults, [
-              "conversation_dynamics",
-              "power_dynamics",
-              "pattern",
-            ])}</p>
+            <p>${getValue<string>(parsedResults, ["conversation_dynamics", "power_dynamics", "pattern"], "Not given")}</p>
             <div class="progress-container">
               <div class="progress-label">
                 <span>Balance</span>
                 <span>${(
-                  getValue(parsedResults, [
-                    "conversation_dynamics",
-                    "power_dynamics",
-                    "balance",
-                  ]) * 100
+                  getValue<number>(parsedResults, ["conversation_dynamics", "power_dynamics", "balance"], 0) * 100
                 ).toFixed(0)}%</span>
               </div>
               <div class="progress-bar">
-                <div class="progress-fill" style="width: ${
-                  getValue(parsedResults, [
-                    "conversation_dynamics",
-                    "power_dynamics",
-                    "balance",
-                  ]) * 100
-                }%"></div>
+                <div class="progress-fill" style="width: ${(
+                  getValue<number>(parsedResults, ["conversation_dynamics", "power_dynamics", "balance"], 0) * 100
+                )}%"></div>
               </div>
             </div>
           </div>
         </div>
 
         <h3>Turn Analysis</h3>
-        ${getValue(parsedResults, ["turn_analysis"])
-          .map(
-            (turn: any, index: number) => `
+        ${((getValue(parsedResults, ["turn_analysis"], []) as TextMRIResult["turn_analysis"]).map((turn, index) => `
           <div class="card">
             <h4>Turn ${index + 1}</h4>
             <div class="grid">
               <div>
                 <h5>Content Analysis</h5>
-                <p>${getValue(turn, ["content_analysis", "main_point"])}</p>
+                <p>${getValue<string>(turn, ["content_analysis", "main_point"], "Not given")}</p>
                 <div class="progress-container">
                   <div class="progress-label">
                     <span>Clarity</span>
                     <span>${(
-                      getValue(turn, ["content_analysis", "clarity"]) * 100
+                      getValue<number>(turn, ["content_analysis", "clarity"], 0) * 100
                     ).toFixed(0)}%</span>
                   </div>
                   <div class="progress-bar">
-                    <div class="progress-fill" style="width: ${
-                      getValue(turn, ["content_analysis", "clarity"]) * 100
-                    }%"></div>
+                    <div class="progress-fill" style="width: ${(
+                      getValue<number>(turn, ["content_analysis", "clarity"], 0) * 100
+                    )}%"></div>
                   </div>
                 </div>
                 <div class="progress-container">
                   <div class="progress-label">
                     <span>Impact</span>
                     <span>${(
-                      getValue(turn, ["content_analysis", "impact"]) * 100
+                      getValue<number>(turn, ["content_analysis", "impact"], 0) * 100
                     ).toFixed(0)}%</span>
                   </div>
                   <div class="progress-bar">
-                    <div class="progress-fill" style="width: ${
-                      getValue(turn, ["content_analysis", "impact"]) * 100
-                    }%"></div>
+                    <div class="progress-fill" style="width: ${(
+                      getValue<number>(turn, ["content_analysis", "impact"], 0) * 100
+                    )}%"></div>
                   </div>
                 </div>
               </div>
@@ -583,71 +641,66 @@ const generateHtmlContent = (data: any) => {
                   <div class="progress-label">
                     <span>Ethos</span>
                     <span>${(
-                      getValue(turn, ["rhetorical_elements", "ethos"]) * 100
+                      getValue<number>(turn, ["rhetorical_elements", "ethos"], 0) * 100
                     ).toFixed(0)}%</span>
                   </div>
                   <div class="progress-bar">
-                    <div class="progress-fill" style="width: ${
-                      getValue(turn, ["rhetorical_elements", "ethos"]) * 100
-                    }%"></div>
+                    <div class="progress-fill" style="width: ${(
+                      getValue<number>(turn, ["rhetorical_elements", "ethos"], 0) * 100
+                    )}%"></div>
                   </div>
                 </div>
                 <div class="progress-container">
                   <div class="progress-label">
                     <span>Pathos</span>
                     <span>${(
-                      getValue(turn, ["rhetorical_elements", "pathos"]) * 100
+                      getValue<number>(turn, ["rhetorical_elements", "pathos"], 0) * 100
                     ).toFixed(0)}%</span>
                   </div>
                   <div class="progress-bar">
-                    <div class="progress-fill" style="width: ${
-                      getValue(turn, ["rhetorical_elements", "pathos"]) * 100
-                    }%"></div>
+                    <div class="progress-fill" style="width: ${(
+                      getValue<number>(turn, ["rhetorical_elements", "pathos"], 0) * 100
+                    )}%"></div>
                   </div>
                 </div>
                 <div class="progress-container">
                   <div class="progress-label">
                     <span>Logos</span>
                     <span>${(
-                      getValue(turn, ["rhetorical_elements", "logos"]) * 100
+                      getValue<number>(turn, ["rhetorical_elements", "logos"], 0) * 100
                     ).toFixed(0)}%</span>
                   </div>
                   <div class="progress-bar">
-                    <div class="progress-fill" style="width: ${
-                      getValue(turn, ["rhetorical_elements", "logos"]) * 100
-                    }%"></div>
+                    <div class="progress-fill" style="width: ${(
+                      getValue<number>(turn, ["rhetorical_elements", "logos"], 0) * 100
+                    )}%"></div>
                   </div>
                 </div>
               </div>
             </div>
           </div>
-        `
-          )
-          .join("")}
+        `).join(""))}
 
         <h3>Recommendations</h3>
         <div class="grid">
-          ${getValue(parsedResults, ["recommendations"])
-            .map(
-              (rec: any) => `
-            <div class="card">
-              <span class="tag">${rec.target}</span>
-              <div>
-                <h5>Observation</h5>
-                <p>${rec.observation}</p>
+          ${((getValue(parsedResults, ["recommendations"], []) as TextMRIResult["recommendations"])
+            .map((rec) => `
+              <div class="card">
+                <span class="tag">${rec.target}</span>
+                <div>
+                  <h5>Observation</h5>
+                  <p>${rec.observation}</p>
+                </div>
+                <div>
+                  <h5>Suggestion</h5>
+                  <p>${rec.suggestion}</p>
+                </div>
+                <div>
+                  <h5>Expected Impact</h5>
+                  <p>${rec.expected_impact}</p>
+                </div>
               </div>
-              <div>
-                <h5>Suggestion</h5>
-                <p>${rec.suggestion}</p>
-              </div>
-              <div>
-                <h5>Expected Impact</h5>
-                <p>${rec.expected_impact}</p>
-              </div>
-            </div>
-          `
-            )
-            .join("")}
+            `).join(""))}}
         </div>
       </div>
     </body>

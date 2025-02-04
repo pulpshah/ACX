@@ -5,31 +5,15 @@ import ConversationContext, {
   ContextData,
 } from "@/components/textmri/ConversationContext";
 import ParticipantInfo, {
-  Participant,
+  Participant as ParticipantType,
 } from "@/components/textmri/ParticipantInfo";
-import ConversationTurns, {
-  Turn,
-} from "@/components/textmri/ConversationTurns";
+import ConversationTurns from "@/components/textmri/ConversationTurns";
 import AnalysisResults from "@/components/textmri/AnalysisResults";
 
-// If the imported types are being inferred as `any`, add explicit type definitions:
-type ContextData = {
-  globalObjectives: string;
-  localObjectives: string;
-  environmentalContext: string;
-  conversationContext: string;
-  date: string;
-  time: string;
-};
-
-type Participant = {
-  name: string;
-  // add additional participant properties as needed
-};
-
 type Turn = {
-  speaker: string;
-  message: string;
+  id: string;
+  speakerId: string;
+  text: string;
   // add additional turn properties as needed
 };
 
@@ -38,16 +22,98 @@ type Step = "type" | "context" | "participants" | "turns" | "results";
 interface AnalysisData {
   conversationType: string;
   context: ContextData;
-  participants: Participant[];
+  participants: ParticipantType[];
   turns: Turn[];
 }
 
 interface AnalysisResults {
-  overview: Record<string, any>;
-  participant_analysis: Array<Record<string, any>>;
-  turn_analysis: Array<Record<string, any>>;
-  conversation_dynamics: Record<string, any>;
-  recommendations: Array<string>;
+  overview: {
+    objective_analysis: {
+      stated_objective: string;
+      achievement_level: number;
+      key_factors: string[];
+    };
+    context_impact: {
+      environmental_factors: {
+        factor: string;
+        impact_level: number;
+        observations: string[];
+      }[];
+      relationship_dynamics: {
+        dynamic: string;
+        strength: number;
+        observations: string[];
+      }[];
+    };
+    key_themes: string[];
+    overall_effectiveness: number;
+  };
+  participant_analysis: {
+    participant_id: string;
+    engagement_level: number;
+    communication_style: {
+      primary_style: string;
+      adaptability: number;
+      effectiveness: number;
+    };
+    influence_patterns: {
+      technique: string;
+      frequency: number;
+      effectiveness: number;
+    }[];
+    behavioral_insights: string[];
+    development_areas: string[];
+  }[];
+  turn_analysis: {
+    turn_id: number;
+    speaker: string;
+    content_analysis: {
+      main_point: string;
+      clarity: number;
+      impact: number;
+    };
+    rhetorical_elements: {
+      ethos: number;
+      pathos: number;
+      logos: number;
+    };
+    response_quality: {
+      relevance: number;
+      constructiveness: number;
+    };
+    psychological_indicators: string[];
+    turn_impact: string;
+  }[];
+  conversation_dynamics: {
+    flow_analysis: {
+      pattern: string;
+      effectiveness: number;
+      bottlenecks: string[];
+    };
+    power_dynamics: {
+      pattern: string;
+      balance: number;
+      observations: string[];
+    };
+    emotional_progression: {
+      trajectory: string;
+      key_moments: {
+        moment: string;
+        impact: string;
+      }[];
+    };
+    topic_management: {
+      coherence: number;
+      development: string;
+      transitions: string[];
+    };
+  };
+  recommendations: {
+    target: string;
+    observation: string;
+    suggestion: string;
+    expected_impact: string;
+  }[];
 }
 
 const LoadingSpinner = () => (
@@ -62,7 +128,41 @@ const LoadingSpinner = () => (
 
 export default function TextMRI() {
   const [currentStep, setCurrentStep] = useState<Step>("type");
-  const [analysisData, setAnalysisData] = useState<Partial<AnalysisData>>({});
+  const [analysisData, setAnalysisData] = useState<{
+    conversationType: string;
+    context: ContextData;
+    participants?: ParticipantType[];
+    turns: Turn[];
+  }>({
+    conversationType: "",
+    context: {
+      globalObjectives: [],
+      localObjectives: [],
+      environmentalContext: {
+        selectedFields: [],
+        location: "",
+        setting: "",
+        atmosphere: "",
+        timeOfDay: "",
+        noise: "",
+        privacy: "",
+        customContext: "",
+        otherValues: {},
+      },
+      conversationContext: {
+        selectedFields: [],
+        relationship: "",
+        history: "",
+        power: "",
+        formality: "",
+        emotionalState: "",
+        urgency: "",
+        customContext: "",
+        otherValues: {},
+      },
+    },
+    turns: [],
+  });
   const [analysisResults, setAnalysisResults] =
     useState<AnalysisResults | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -77,7 +177,7 @@ export default function TextMRI() {
     setCurrentStep("participants");
   };
 
-  const handleParticipantsComplete = (participants: Participant[]) => {
+  const handleParticipantsComplete = (participants: ParticipantType[]) => {
     setAnalysisData((prev) => ({ ...prev, participants }));
     setCurrentStep("turns");
   };
@@ -221,7 +321,9 @@ export default function TextMRI() {
           {currentStep === "turns" && analysisData.participants && (
             <ConversationTurns
               participants={analysisData.participants}
-              onComplete={handleTurnsComplete}
+              onComplete={(turns: Turn[]) => {
+                void handleTurnsComplete(turns);
+              }}
               onBack={handleBack}
               initialTurns={analysisData.turns}
               isAnalyzing={isAnalyzing}
@@ -231,7 +333,7 @@ export default function TextMRI() {
             <AnalysisResults
               results={analysisResults}
               onBack={handleBack}
-              analysisData={analysisData}
+              analysisData={analysisData as AnalysisData}
             />
           )}
         </div>
